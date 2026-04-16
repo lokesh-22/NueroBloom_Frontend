@@ -4,11 +4,11 @@ import { heartbeat } from "@/services/api";
 export const handleSession = async () => {
  const user = JSON.parse(localStorage.getItem("user") || "{}");
 
-setInterval(() => {
+ const heartbeatInterval = setInterval(() => {
   if (user?.id) {
     heartbeat(user.id);
   }
-}, 10000); // every 10 sec
+ }, 10000); // every 10 sec
 
   if (!user?.id) return;
 
@@ -21,4 +21,6 @@ setInterval(() => {
   }
 
   localStorage.setItem("session_id", res.session_id.toString());
+
+  return () => clearInterval(heartbeatInterval);
 };

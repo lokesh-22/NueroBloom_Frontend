@@ -1,24 +1,96 @@
 const API = process.env.NEXT_PUBLIC_API_URL;
 
-// REGISTER
-export const registerUser = async (data: any) => {
-  const res = await fetch(`${API}/auth/register`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
-  return res.json();
+type RequestOptions = RequestInit & {
+  fallbackMessage?: string;
 };
 
-// LOGIN
-export const loginUser = async (data: any) => {
-  const res = await fetch(`${API}/auth/login`, {
+export type AuthPayload = {
+  email: string;
+  password: string;
+};
+
+export type RegisterPayload = AuthPayload & {
+  first_name: string;
+  last_name: string;
+};
+
+export type UserRecord = {
+  id: number;
+  email: string;
+  first_name?: string;
+  last_name?: string;
+};
+
+export type LoginResponse = {
+  access_token: string;
+  user: UserRecord;
+};
+
+export type StatsResponse = {
+  total_time: number;
+  total_sessions: number;
+};
+
+export type DocumentRecord = {
+  id: number;
+  title: string;
+  status: string;
+  summary?: string | null;
+  extracted_text?: string | null;
+  file_type?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
+export type QuizRecord = {
+  id: number;
+  question: string;
+  options: string[];
+  correct_answer: string;
+};
+
+async function parseJsonSafely(response: Response) {
+  const text = await response.text();
+  if (!text) return null;
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
+async function apiRequest<T>(url: string, options?: RequestOptions): Promise<T> {
+  const response = await fetch(url, options);
+  const payload = await parseJsonSafely(response);
+
+  if (!response.ok) {
+    const errorMessage =
+      typeof payload === "object" && payload && "detail" in payload
+        ? String(payload.detail)
+        : options?.fallbackMessage || "Request failed";
+
+    throw new Error(errorMessage);
+  }
+
+  return payload as T;
+}
+
+export const registerUser = async (data: RegisterPayload) =>
+  apiRequest<{ id: number; email: string }>(`${API}/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
+    fallbackMessage: "Registration failed",
   });
-  return res.json();
-};
+
+export const loginUser = async (data: AuthPayload) =>
+  apiRequest<LoginResponse>(`${API}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+    fallbackMessage: "Login failed",
+  });
 
 // TRACK TIME
 export const trackTime = async (userId: number, seconds: number) => {
@@ -29,19 +101,17 @@ export const trackTime = async (userId: number, seconds: number) => {
 
 
 export const getStats = async (userId: number) => {
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/auth/stats/${userId}`
-  );
-  return res.json();
+  return apiRequest<StatsResponse>(`${process.env.NEXT_PUBLIC_API_URL}/auth/stats/${userId}`, {
+    fallbackMessage: "Unable to load study stats",
+  });
 };
 
 // START SESSION
 export const startSession = async (userId: number) => {
-  const res = await fetch(`${API}/auth/start-session?user_id=${userId}`, {
+  return apiRequest<{ session_id: string }>(`${API}/auth/start-session?user_id=${userId}`, {
     method: "POST",
+    fallbackMessage: "Unable to start session",
   });
-
-  return res.json();
 };
 
 // END SESSION
@@ -65,40 +135,36 @@ export const uploadDocument = async (file: File, userId: number) => {
   const formData = new FormData();
   formData.append("file", file);
 
-  const res = await fetch(`${API}/documents/upload?user_id=${userId}`, {
+  return apiRequest<{ doc_id: number }>(`${API}/documents/upload?user_id=${userId}`, {
     method: "POST",
     body: formData,
+    fallbackMessage: "Upload failed",
   });
-
-  return res.json();
 };
 
 export const getDocuments = async (userId: number) => {
-  const res = await fetch(`${API}/documents/${userId}`);
-  return res.json();
+  return apiRequest<DocumentRecord[] | { documents: DocumentRecord[] }>(`${API}/documents/${userId}`, {
+    fallbackMessage: "Unable to load documents",
+  });
 };
 
 export const processDocument = async (docId: number) => {
-  const res = await fetch(`${API}/documents/process/${docId}`, {
+  return apiRequest<{ message: string }>(`${API}/documents/process/${docId}`, {
     method: "POST",
+    fallbackMessage: "Unable to process document",
   });
-  return res.json();
 };
 
 
 export const getDocumentById = async (docId: string) => {
-  const res = await fetch(`${API}/documents/detail/${docId}`);
-
-  if (!res.ok) {
-    throw new Error("Failed to fetch document");
-  }
-
-  return res.json();
+  return apiRequest<DocumentRecord>(`${API}/documents/detail/${docId}`, {
+    fallbackMessage: "Failed to fetch document",
+  });
 };
 
 
 export const getQuiz = async (docId: string) => {
-  const res = await fetch(`${API}/quiz/${docId}`);
-  return res.json();
+  return apiRequest<QuizRecord[]>(`${API}/quiz/${docId}`, {
+    fallbackMessage: "Unable to load quiz",
+  });
 };
-
