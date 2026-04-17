@@ -24,21 +24,20 @@ export default function Dashboard() {
     const user = JSON.parse(localStorage.getItem("user") || "{}") as StoredUser;
 
     if (!user?.id) return;
-    const userId = user.id;
 
     let cleanup: (() => void) | undefined;
     handleSession().then((fn) => {
       cleanup = fn;
     });
 
-    getStats(userId).then(setStats).catch((err: Error) => setError(err.message));
+    getStats().then(setStats).catch((err: Error) => setError(err.message));
 
     const timer = setInterval(() => {
       setLiveSeconds((prev) => prev + 1);
     }, 1000);
 
     const interval = setInterval(() => {
-      getStats(userId).then(setStats).catch(() => undefined);
+      getStats().then(setStats).catch(() => undefined);
     }, 10000);
 
     return () => {
@@ -88,9 +87,14 @@ export default function Dashboard() {
       note: "Each focused block builds consistency.",
     },
     {
-      label: "Today’s pace",
-      value: liveSeconds > 0 ? `${Math.floor(liveSeconds / 60)} min live` : "Just started",
-      note: "Keep the tab open while you revise.",
+      label: "Average score",
+      value: `${stats?.average_score || 0}%`,
+      note: "Tracks how strong your recent quiz recall has been.",
+    },
+    {
+      label: "Current streak",
+      value: `${stats?.current_streak || 0} day${(stats?.current_streak || 0) === 1 ? "" : "s"}`,
+      note: `Longest streak: ${stats?.longest_streak || 0} day${(stats?.longest_streak || 0) === 1 ? "" : "s"}.`,
     },
   ];
 
@@ -134,7 +138,7 @@ export default function Dashboard() {
         </div>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-3">
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {insightCards.map((card) => (
           <article
             key={card.label}
@@ -184,7 +188,7 @@ export default function Dashboard() {
               },
               {
                 title: "Track effort",
-                text: "Visible session time helps you stay honest about consistency.",
+                text: `You have attempted ${stats?.total_quizzes_attempted || 0} quizzes and completed ${stats?.total_documents_completed || 0} documents strongly.`,
               },
               {
                 title: "Repeat smoothly",

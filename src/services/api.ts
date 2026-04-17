@@ -27,6 +27,11 @@ export type LoginResponse = {
 };
 
 export type StatsResponse = {
+  total_quizzes_attempted: number;
+  average_score: number;
+  current_streak: number;
+  longest_streak: number;
+  total_documents_completed: number;
   total_time: number;
   total_sessions: number;
 };
@@ -49,6 +54,46 @@ export type QuizRecord = {
   correct_answer: string;
 };
 
+export type WeakAreaRecord = {
+  question_id: number;
+  question: string;
+  selected_answer?: string | null;
+  correct_answer: string;
+};
+
+export type QuizSubmissionResponse = {
+  score: number;
+  correct_count: number;
+  total_questions: number;
+  attempt_number: number;
+  performance_level: "weak" | "average" | "strong";
+  improvement: number;
+  feedback: string;
+  weak_areas: WeakAreaRecord[];
+};
+
+export type QuizAttemptRecord = {
+  score: number;
+  correct_count: number;
+  total_questions: number;
+  attempt_number: number;
+  performance_level: "weak" | "average" | "strong";
+  created_at?: string | null;
+};
+
+function buildHeaders(headers?: HeadersInit) {
+  const merged = new Headers(headers);
+
+  if (typeof window !== "undefined") {
+    const token = window.localStorage.getItem("token");
+    if (token && !merged.has("Authorization")) {
+      merged.set("Authorization", `Bearer ${token}`);
+    }
+  }
+
+  return merged;
+}
+
 async function parseJsonSafely(response: Response) {
   const text = await response.text();
   if (!text) return null;
@@ -61,7 +106,10 @@ async function parseJsonSafely(response: Response) {
 }
 
 async function apiRequest<T>(url: string, options?: RequestOptions): Promise<T> {
-  const response = await fetch(url, options);
+  const response = await fetch(url, {
+    ...options,
+    headers: buildHeaders(options?.headers),
+  });
   const payload = await parseJsonSafely(response);
 
   if (!response.ok) {
@@ -100,8 +148,8 @@ export const trackTime = async (userId: number, seconds: number) => {
 };
 
 
-export const getStats = async (userId: number) => {
-  return apiRequest<StatsResponse>(`${process.env.NEXT_PUBLIC_API_URL}/auth/stats/${userId}`, {
+export const getStats = async () => {
+  return apiRequest<StatsResponse>(`${process.env.NEXT_PUBLIC_API_URL}/dashboard/stats`, {
     fallbackMessage: "Unable to load study stats",
   });
 };
@@ -168,3 +216,20 @@ export const getQuiz = async (docId: string) => {
     fallbackMessage: "Unable to load quiz",
   });
 };
+
+
+export const submitQuiz = async (docId: string, answers: Record<number, string>) => {
+  return apiRequest<QuizSubmissionResponse>(`${API}/quizzes/${docId}/submit`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ answers }),
+    fallbackMessage: "Failed to submit quiz",
+  });
+};
+
+export const getQuizAttempts = async (docId: string) => {
+  return apiRequest<QuizAttemptRecord[]>(`${API}/quizzes/${docId}/attempts`, {
+    fallbackMessage: "Failed to fetch quiz attempts",
+  });
+};
+
