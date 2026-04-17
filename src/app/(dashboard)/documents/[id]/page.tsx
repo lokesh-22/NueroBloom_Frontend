@@ -72,6 +72,12 @@ export default function DocumentDetail() {
           >
             {canTakeQuiz ? "Take quiz" : "Quiz available after processing"}
           </Link>
+          <Link
+            href={`/chat/${doc.id}`}
+            className="mt-3 inline-flex w-full items-center justify-center rounded-[22px] border border-[var(--line)] bg-white px-4 py-4 text-sm font-semibold text-[var(--text)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+          >
+            Ask questions about this document
+          </Link>
         </div>
       </section>
 

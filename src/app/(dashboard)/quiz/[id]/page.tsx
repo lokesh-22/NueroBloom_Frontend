@@ -273,6 +273,26 @@ export default function QuizPage() {
         </section>
       )}
 
+      {result && result.explanations.length > 0 && (
+        <section className="rounded-[30px] border border-[var(--line)] bg-white/72 p-6">
+          <p className="text-xs uppercase tracking-[0.28em] text-[var(--text-soft)]">
+            Concept refresh
+          </p>
+          <div className="mt-4 grid gap-4 xl:grid-cols-2">
+            {result.explanations.map((item) => (
+              <article key={item.topic} className="glass-card rounded-[24px] p-5">
+                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--text-soft)]">
+                  {item.topic}
+                </p>
+                <p className="mt-3 text-sm leading-7 text-[var(--text)]">
+                  {item.explanation}
+                </p>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+
       {attempts.length > 0 && (
         <section className="rounded-[30px] border border-[var(--line)] bg-white/72 p-6">
           <p className="text-xs uppercase tracking-[0.28em] text-[var(--text-soft)]">

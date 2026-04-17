@@ -61,6 +61,11 @@ export type WeakAreaRecord = {
   correct_answer: string;
 };
 
+export type ExplanationRecord = {
+  topic: string;
+  explanation: string;
+};
+
 export type QuizSubmissionResponse = {
   score: number;
   correct_count: number;
@@ -70,6 +75,7 @@ export type QuizSubmissionResponse = {
   improvement: number;
   feedback: string;
   weak_areas: WeakAreaRecord[];
+  explanations: ExplanationRecord[];
 };
 
 export type QuizAttemptRecord = {
@@ -79,6 +85,17 @@ export type QuizAttemptRecord = {
   attempt_number: number;
   performance_level: "weak" | "average" | "strong";
   created_at?: string | null;
+};
+
+export type ChatMessageRecord = {
+  role: "user" | "assistant";
+  content: string;
+  created_at?: string | null;
+};
+
+export type ChatResponse = {
+  answer: string;
+  sources: string[];
 };
 
 function buildHeaders(headers?: HeadersInit) {
@@ -233,3 +250,17 @@ export const getQuizAttempts = async (docId: string) => {
   });
 };
 
+export const getChatMessages = async (docId: string) => {
+  return apiRequest<ChatMessageRecord[]>(`${API}/rag/${docId}/messages`, {
+    fallbackMessage: "Failed to fetch chat history",
+  });
+};
+
+export const sendChatMessage = async (docId: string, message: string) => {
+  return apiRequest<ChatResponse>(`${API}/rag/${docId}/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message }),
+    fallbackMessage: "Failed to send chat message",
+  });
+};
