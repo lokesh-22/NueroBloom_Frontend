@@ -15,13 +15,19 @@ export default function DocumentChatPage() {
   const [document, setDocument] = useState<DocumentRecord | null>(null);
   const [messages, setMessages] = useState<ChatMessageRecord[]>([]);
   const [input, setInput] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [authToken] = useState(() => {
+    if (typeof window === "undefined") return null;
+    return window.localStorage.getItem("token");
+  });
+  const [error, setError] = useState(() => (
+    authToken ? "" : "Your session has expired. Please sign in again."
+  ));
+  const [loading, setLoading] = useState(() => Boolean(authToken));
   const [sending, setSending] = useState(false);
   const endRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (!document_id) return;
+    if (!document_id || !authToken) return;
 
     setLoading(true);
     setError("");
@@ -36,7 +42,7 @@ export default function DocumentChatPage() {
       })
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [document_id]);
+  }, [authToken, document_id]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });

@@ -98,6 +98,25 @@ export type ChatResponse = {
   sources: string[];
 };
 
+export type KnowledgeGraphNode = {
+  id: string;
+  label: string;
+  type: "Concept" | "Topic";
+  name?: string;
+  description?: string;
+};
+
+export type KnowledgeGraphEdge = {
+  source: string;
+  target: string;
+  type: "BELONGS_TO" | "PREREQUISITE_FOR" | "RELATED_TO";
+};
+
+export type KnowledgeGraphResponse = {
+  nodes: KnowledgeGraphNode[];
+  edges: KnowledgeGraphEdge[];
+};
+
 function buildHeaders(headers?: HeadersInit) {
   const merged = new Headers(headers);
 
@@ -123,10 +142,17 @@ async function parseJsonSafely(response: Response) {
 }
 
 async function apiRequest<T>(url: string, options?: RequestOptions): Promise<T> {
-  const response = await fetch(url, {
-    ...options,
-    headers: buildHeaders(options?.headers),
-  });
+  let response: Response;
+
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers: buildHeaders(options?.headers),
+    });
+  } catch {
+    throw new Error("Unable to reach the API server. Check backend URL and server status.");
+  }
+
   const payload = await parseJsonSafely(response);
 
   if (!response.ok) {
@@ -159,8 +185,9 @@ export const loginUser = async (data: AuthPayload) =>
 
 // TRACK TIME
 export const trackTime = async (userId: number, seconds: number) => {
-  await fetch(`${API}/auth/track-time?user_id=${userId}&seconds=${seconds}`, {
+  await apiRequest<void>(`${API}/auth/track-time?user_id=${userId}&seconds=${seconds}`, {
     method: "POST",
+    fallbackMessage: "Unable to track study time",
   });
 };
 
@@ -181,16 +208,20 @@ export const startSession = async (userId: number) => {
 
 // END SESSION
 export const endSession = async (sessionId: string) => {
-  await fetch(`${API}/auth/end-session?session_id=${sessionId}`, {
+  await apiRequest<void>(`${API}/auth/end-session?session_id=${sessionId}`, {
     method: "POST",
     keepalive: true, // important for tab close
+    fallbackMessage: "Unable to end session",
   });
 };
 
 export const heartbeat = async (userId: number) => {
-  await fetch(
+  await apiRequest<void>(
     `${process.env.NEXT_PUBLIC_API_URL}/auth/heartbeat?user_id=${userId}`,
-    { method: "POST" }
+    {
+      method: "POST",
+      fallbackMessage: "Heartbeat failed",
+    }
   );
 };
 
@@ -262,5 +293,11 @@ export const sendChatMessage = async (docId: string, message: string) => {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ message }),
     fallbackMessage: "Failed to send chat message",
+  });
+};
+
+export const getKnowledgeGraph = async (docId: string) => {
+  return apiRequest<KnowledgeGraphResponse>(`${API}/knowledge-graph/${docId}`, {
+    fallbackMessage: "Failed to fetch knowledge graph",
   });
 };

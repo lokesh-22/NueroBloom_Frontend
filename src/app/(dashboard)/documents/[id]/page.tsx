@@ -78,6 +78,12 @@ export default function DocumentDetail() {
           >
             Ask questions about this document
           </Link>
+          <Link
+            href={`/graph/${doc.id}`}
+            className="mt-3 inline-flex w-full items-center justify-center rounded-[22px] border border-[var(--line)] bg-white px-4 py-4 text-sm font-semibold text-[var(--text)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+          >
+            Explore knowledge graph
+          </Link>
         </div>
       </section>
 

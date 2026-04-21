@@ -19,6 +19,20 @@ const navItems = [
 export function DashboardShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [authReady] = useState(() => {
+    if (typeof window === "undefined") return false;
+
+    const rawUser = window.localStorage.getItem("user");
+    const token = window.localStorage.getItem("token");
+    if (!rawUser || !token) return false;
+
+    try {
+      JSON.parse(rawUser);
+      return true;
+    } catch {
+      return false;
+    }
+  });
   const [user] = useState<UserProfile | null>(() => {
     if (typeof window === "undefined") return null;
 
@@ -151,7 +165,13 @@ export function DashboardShell({ children }: { children: ReactNode }) {
           <div className="pointer-events-none absolute right-0 top-0 h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(30,122,99,0.16),transparent_70%)]" />
           <div className="dashboard-main-scroll relative h-full overflow-y-visible lg:overflow-y-auto">
             <div className="mx-auto max-w-6xl p-0 lg:p-8">
-              {children}
+              {authReady ? children : (
+                <div className="flex min-h-[60vh] items-center justify-center">
+                  <div className="glass-card rounded-[28px] px-6 py-5 text-sm text-[var(--text-soft)]">
+                    Checking your workspace access...
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </main>
